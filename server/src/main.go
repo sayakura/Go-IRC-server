@@ -5,14 +5,21 @@ import (
 	"flag";
 )
 
-var settings = flag.String("c", "../settings.conf", "path to the configuration file")
-var debug = flag.Bool("d", false, "set the debug mode of the program")
+var configPath = flag.String("c", "settings.conf", "path to the configuration file")
+var debug = flag.Bool("d", true, "set the debug mode of the program")
 
 func main() {
-
 	flag.Parse()
-	fmt.Printf("setting path: %s\n", *settings)
-	fmt.Printf("debug mode: %t\n", *debug)
+	config := readConfigFile(*configPath)
+	if *debug {
+		fmt.Printf("Setting path: %s\n", *configPath)
+		fmt.Printf("Port: %s\n", config.Port)
+		fmt.Printf("Debug mode: %t\n", *debug)
+	}
+	
+	runServer(config)
+
+
 }
 
 
