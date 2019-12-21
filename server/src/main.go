@@ -1,4 +1,4 @@
-package irc
+package main
 
 import (
 	"fmt";
@@ -11,8 +11,8 @@ var debug = flag.Bool("d", false, "set the debug mode of the program")
 func main() {
 
 	flag.Parse()
-	fmt.print(settings)
-	fmt.print(debug)
+	fmt.Printf("setting path: %s\n", *settings)
+	fmt.Printf("debug mode: %t\n", *debug)
 }
 
 
