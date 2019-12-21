@@ -1,0 +1,4 @@
+go
+go.mod
+.cache/go-build
+go/pkg/mod/cache
