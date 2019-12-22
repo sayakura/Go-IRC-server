@@ -2,38 +2,39 @@ package main
 
 import (
 	"encoding/json"
-	"os"
+	"io"
+	"io/ioutil"
 	"log"
+	"os"
 )
 
 type Channel struct {
-	
 }
 
 type User struct {
-	addrInfo		string
-	LoggedIn		bool
-	username		string
-	nickname		string
-	password		string
-	channels		[]Channel
+	addrInfo string
+	LoggedIn bool
+	username string
+	nickname string
+	password string
+	channels []Channel
 }
 
 type DB struct {
-	userList map[string]User
+	userList    map[string]User
 	channelList []Channel
 }
 
-func initDB(cfg Config) *DB{
+func initDB(cfg Config) *DB {
 	db := new(DB)
 	if *dataPresist {
-		file, err := os.Open(cfg.filePath)
+		file, err := os.Open(cfg.DatabasePath)
 		if err != nil {
-			log.Fatalln("Failed to open data file")
+			log.Fatalln("Failed to open data file", err.Error())
 		}
 		err = json.NewDecoder(file).Decode(&db)
-		if err != nil {
-			log.Fatalln("Encountered error when parsing data file")
+		if err != nil && err != io.EOF {
+			log.Fatalln("Encountered error when parsing data file", err.Error())
 		}
 	}
 	return db
@@ -45,10 +46,18 @@ func (d *DB) isLoggedIn(addr string) bool {
 
 func (d *DB) userIsMatched(curUser User) bool {
 	for _, user := range d.userList {
-		if (curUser.username == user.username || curUser.nickname == user.nickname) && 
+		if (curUser.username == user.username || curUser.nickname == user.nickname) &&
 			curUser.password == user.password {
 			return true
 		}
 	}
 	return false
+}
+
+func (d *DB) savedToFileSystem() {
+	file, _ := json.MarshalIndent(d, "", " ")
+	err := ioutil.WriteFile("./data/db", file, 0644)
+	if err != nil {
+		log.Fatalln("Failed to save db data info file system", err.Error())
+	}
 }

@@ -1,74 +1,109 @@
-package main 
+package main
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"strings"
-	"log"
+
 	// "bufio"
 	// "bytes"
-	// "io"
+	"io"
 )
 
 const (
 	CONN_HOST = "localhost"
 	CONN_TYPE = "tcp"
 	DELIMETER = "\n"
+	EOF       = 0
 )
+
+type Client struct {
+	conn net.Conn
+}
+
+func (c *Client) send(msg string) {
+	c.conn.Write([]byte(msg))
+}
+
+func (c *Client) recv(buf []byte) (int, error) {
+	return c.conn.Read(buf)
+}
+
+func (c *Client) close() {
+	c.conn.Close()
+}
+
+func (c *Client) getAddr() string {
+	return c.conn.RemoteAddr().String()
+}
 
 // var	userList map[string]User
 
+func promptLoop(client *Client) {
+	// buf := make([]byte, 1024)
 
-func promptLoop(conn net.Conn) {
-	buf := make([]byte, 1024)
-
-	_, err := conn.Read(buf)
-	if err != nil {
-		log.Println("Error when reading incomming request: ", err.Error())
-	}
+	// _, err := conn.Read(buf)
+	// if err != nil {
+	// 	log.Println("Error when reading incomming request: ", err.Error())
+	// }
 }
 
-func authenticateUser(userConn net.Conn, addr string, db *DB) {
+func authenticateUser(client *Client, addr string, db *DB) error {
 	var usr User
 	buf := make([]byte, 1024)
-	_, err := userConn.Read(buf)
 
-	if err != nil {
-		log.Println("Error when reading message from user: ", err.Error())
-	}
-	for _, msg := range strings.Split(string(buf), DELIMETER) {
-		if msg[0] != 0 {
-			fmt.Println("got something!")
-			tokens := strings.Split(msg, " ")
-			command := strings.ToUpper(tokens[0])
-			params := tokens[1:]
-			handler, found := authCommandList[command]
-			if found {
-				handler(userConn, params, &usr)
-			} else {
-				userConn.Write([]byte ("Unknown command"))
+	for {
+		_, err := client.recv(buf)
+		if err == io.EOF {
+			return io.EOF
+		}
+		if err != nil {
+			log.Println("Error when reading message from user: ", err.Error())
+		}
+		for _, msg := range strings.Split(string(buf), DELIMETER) {
+			if msg != "" && msg[0] != EOF {
+				if *debug {
+					fmt.Printf("Got something: [%s][%d]\n", msg, len(msg))
+				}
+				tokens := strings.Split(msg, " ")
+				command := strings.ToUpper(tokens[0])
+				params := tokens[1:]
+				handler, found := authCommandList[command]
+				if found {
+					handler(client, params, &usr)
+				} else {
+					client.send("Unknown command\n")
+				}
+			}
+			if db.userIsMatched(usr) {
+				client.send("Logged In!")
+				return nil
 			}
 		}
-		if db.userIsMatched(usr) {
-			userConn.Write([]byte ("Logged In!"))
-			break 
+		for i := 0; i < 1024; i++ {
+			buf[i] = 0
 		}
 	}
 }
 
-func handleNewConnection(conn net.Conn, db *DB) {
-	addr := conn.RemoteAddr().String()
+func handleNewConnection(client *Client, db *DB) {
+	addr := client.getAddr()
+	client.send("You are currently not logged in\n")
 	for !db.isLoggedIn(addr) {
-		conn.Write([]byte("You are currently not logged in\n"))
-		authenticateUser(conn, addr, db)
+		err := authenticateUser(client, addr, db)
+		if err != nil {
+			fmt.Println("Client disconnected")
+			client.close()
+			return
+		}
 	}
-	promptLoop(conn)
-	conn.Close()
+	promptLoop(client)
+	client.close()
 }
 
-func runServer(cfg Config) {
-	db := initDB(cfg)
-	host := strings.Join([]string {CONN_HOST, cfg.Port}, ":")
+func runServer(cfg Config, db *DB) {
+	host := strings.Join([]string{CONN_HOST, cfg.Port}, ":")
 	if *debug {
 		fmt.Printf("Host: %s\n", host)
 	}
@@ -83,11 +118,13 @@ func runServer(cfg Config) {
 
 	for {
 		newConn, err := conn.Accept()
+		var client Client = Client{conn: newConn}
+
 		if err != nil {
 			log.Println("Error with accepting new connection: ", err.Error())
 		}
-		newConn.Write([]byte ("You are connected to IRC server!\n"))
-		go handleNewConnection(newConn, db)
+		newConn.Write([]byte("You are connected to IRC server!\n"))
+		go handleNewConnection(&client, db)
 	}
 }
 
@@ -95,8 +132,8 @@ func runServer(cfg Config) {
 // 	"PASS" : ircPassHandler,
 // }
 
-var authCommandList = map[string]func(net.Conn, []string, *User) {
-	"PASS" : ircPassHandler,
-	"NICK" : ircPassHandler,
-	"USER" : ircPassHandler,
+var authCommandList = map[string]func(*Client, []string, *User){
+	"PASS": ircPassHandler,
+	"NICK": ircPassHandler,
+	"USER": ircPassHandler,
 }

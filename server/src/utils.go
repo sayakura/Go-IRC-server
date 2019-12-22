@@ -2,17 +2,17 @@ package main
 
 import (
 	"encoding/json"
-	"os"
 	"log"
+	"os"
 	//"fmt"
 )
 
 type Config struct {
-	Port string
-	filePath string
+	Port         string
+	DatabasePath string
 }
 
-func readConfigFile(path string) Config{
+func readConfigFile(path string) Config {
 	var ret Config
 	file, err := os.Open(path)
 	if err != nil {
@@ -20,7 +20,7 @@ func readConfigFile(path string) Config{
 	}
 	err = json.NewDecoder(file).Decode(&ret)
 	if err != nil {
-		log.Fatalln("Encountered error when parsing config file")
+		log.Fatalln("Encountered error when parsing config file ", err.Error())
 	}
 	return ret
 }
