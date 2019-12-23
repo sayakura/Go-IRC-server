@@ -11,7 +11,7 @@ import (
 
 type Channel struct {
 	ChannelName string
-	Users       []*User
+	Users       map[string]*User
 }
 
 type User struct {
@@ -21,12 +21,11 @@ type User struct {
 	username string
 	nickname string
 	password string
-	channels []*Channel
 }
 
 type DB struct {
-	userList    map[string]User
-	channelList map[string]Channel
+	userList    map[string]*User
+	channelList map[string]*Channel
 }
 
 func initDB(cfg Config) *DB {
@@ -42,21 +41,48 @@ func initDB(cfg Config) *DB {
 		}
 	}
 	if db.userList == nil {
-		db.userList = make(map[string]User)
+		db.userList = make(map[string]*User)
 	}
 	if db.channelList == nil {
-		db.channelList = make(map[string]Channel)
+		db.channelList = make(map[string]*Channel)
 	}
 	return db
 }
 
-func (d *DB) isLoggedIn(addr string) bool {
-	return d.userList[addr].LoggedIn
+func (d *DB) isLoggedIn(user *User) bool {
+	//fmt.Println(d.userList)
+	for _, u := range d.userList {
+		if u.nickname == user.nickname &&
+			u.LoggedIn {
+			return true
+		}
+	}
+	return false
 }
 
-func (d *DB) addUser(usr User) {
-	usr.password = hashAndSalt([]byte(usr.password))
-	d.userList[usr.addrInfo] = usr
+func (d *DB) addUser(user *User) {
+	// user.password = user.password
+	d.userList[user.nickname] = user
+}
+
+// }
+
+func (d *DB) login(user *User) {
+	for _, u := range d.userList {
+		if u.nickname == user.nickname {
+			u.LoggedIn = true
+			u.IO = user.IO
+		}
+	}
+}
+
+func (d *DB) ifNicknameTaken(nickname string) bool {
+	for _, u := range d.userList {
+		if u.nickname == nickname {
+			return true
+		}
+	}
+	return false
 }
 
 func (d *DB) userIsMatched(curUser *User) bool {

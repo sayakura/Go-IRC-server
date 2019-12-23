@@ -100,17 +100,23 @@ func authenticateUser(user *User, db *DB) error {
 					user.IO.send("Unknown command\n")
 				}
 				if command == "REGISTER" && handlerErr == nil {
-					user.LoggedIn = true
+					if db.ifNicknameTaken(user.nickname) {
+						user.IO.send("Nickname taken, choose a different one\n")
+						user.nickname = ""
+						user.password = ""
+						user.username = ""
+						return nil
+					}
 					user.IO.send("Successfully signed up and logged in!\n")
-					db.addUser(*user)
+					user.LoggedIn = true
+					db.addUser(user)
 					return nil
 				}
 				if user.password != "" && user.nickname != "" && user.username != "" && handlerErr == nil {
 					fmt.Println(user)
 					if db.userIsMatched(user) {
 						user.IO.send("Successfully logged in!\n")
-						user.LoggedIn = true
-						db.addUser(*user)
+						db.login(user)
 					} else {
 						user.IO.send("Nickname / username / password doesn't match with the record\n")
 					}
@@ -126,7 +132,7 @@ func authenticateUser(user *User, db *DB) error {
 
 func handleNewConnection(user *User, db *DB) {
 	user.IO.send("You are currently not logged in\n")
-	for !db.isLoggedIn(user.addrInfo) {
+	for !db.isLoggedIn(user) {
 		err := authenticateUser(user, db)
 		if err != nil {
 			fmt.Println("Client disconnected")
@@ -135,9 +141,7 @@ func handleNewConnection(user *User, db *DB) {
 		}
 	}
 	promptLoop(user, db)
-	u := db.userList[user.addrInfo]
-	u.LoggedIn = false
-	db.userList[user.addrInfo] = u
+	db.userList[user.nickname].LoggedIn = false
 	user.IO.close()
 }
 
