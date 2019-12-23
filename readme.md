@@ -14,6 +14,7 @@ easy and obvious one, but it added a lot of complexities.
 
 
 **Explanation**
+```
 └── src
     ├── db.go       ;; database api, provides a way to manipulate the db without changing it directly
     ├── handlers.go 
@@ -21,7 +22,7 @@ easy and obvious one, but it added a lot of complexities.
     ├── main.go     ;; entry point, some setup (like db initialization and flag parsing)
     ├── server.go   ;; a big for loop for new connections and go routines to handle each new connection(like a little section)
     └── utils.go    ;; utilities
-
+```
 
 ## Reserch that I had done:
 
