@@ -50,7 +50,6 @@ func initDB(cfg Config) *DB {
 }
 
 func (d *DB) isLoggedIn(user *User) bool {
-	//fmt.Println(d.userList)
 	for _, u := range d.userList {
 		if u.nickname == user.nickname &&
 			u.LoggedIn {
@@ -61,11 +60,8 @@ func (d *DB) isLoggedIn(user *User) bool {
 }
 
 func (d *DB) addUser(user *User) {
-	// user.password = user.password
 	d.userList[user.nickname] = user
 }
-
-// }
 
 func (d *DB) login(user *User) {
 	for _, u := range d.userList {
@@ -87,7 +83,6 @@ func (d *DB) ifNicknameTaken(nickname string) bool {
 
 func (d *DB) userIsMatched(curUser *User) bool {
 	for _, u := range d.userList {
-		//fmt.Println(u)
 		if u.nickname == curUser.nickname &&
 			u.password == curUser.password &&
 			u.username == curUser.username {

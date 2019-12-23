@@ -34,13 +34,10 @@ func (c *Client) close() {
 	c.conn.Close()
 }
 
-// var	userList map[string]User
-
 func promptLoop(user *User, db *DB) error {
 	buf := make([]byte, 1024)
 
 	for {
-		//user.IO.send(user.nickname + " > ")
 		_, err := user.IO.recv(buf)
 		if err == io.EOF {
 			return io.EOF
@@ -51,9 +48,6 @@ func promptLoop(user *User, db *DB) error {
 		for _, msg := range strings.Split(string(buf), DELIMETER) {
 			if msg != "" && msg[0] != EOF {
 				msg = strings.Trim(msg, " ")
-				if *debug {
-					fmt.Printf("Got something: [%s][%d]\n", msg, len(msg))
-				}
 				tokens := strings.Split(msg, " ")
 				command := strings.ToUpper(tokens[0])
 				params := tokens[1:]
@@ -87,9 +81,6 @@ func authenticateUser(user *User, db *DB) error {
 			if msg != "" && msg[0] != EOF {
 				msg = strings.Trim(msg, " ")
 				handlerErr = nil
-				if *debug {
-					fmt.Printf("Got something: [%s][%d]\n", msg, len(msg))
-				}
 				tokens := strings.Split(msg, " ")
 				command := strings.ToUpper(tokens[0])
 				params := tokens[1:]
@@ -113,7 +104,6 @@ func authenticateUser(user *User, db *DB) error {
 					return nil
 				}
 				if user.password != "" && user.nickname != "" && user.username != "" && handlerErr == nil {
-					fmt.Println(user)
 					if db.userIsMatched(user) {
 						user.IO.send("Successfully logged in!\n")
 						db.login(user)

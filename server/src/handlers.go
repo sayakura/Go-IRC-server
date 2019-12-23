@@ -46,21 +46,19 @@ func ircRegisterHandler(params []string, user *User) error {
 		return errors.New("Wrong number of parameters")
 	}
 
-	user.password = hashAndSalt([]byte(params[0]))
+	user.password = params[0]
 	if len(params[1]) > 9 {
 		user.IO.send("nickname has a maximum length of nine (9) character\n")
 		return errors.New("Wrong format")
 	}
 	user.nickname = params[1]
 	user.username = params[2]
-	fmt.Println("good")
 	return nil
 }
 
 func ircJoinHandler(db *DB, params []string, user *User) {
 	if len(params) != 1 {
 		user.IO.send("Wrong number of parameters\n")
-		//return errors.New("Wrong number of parameters")
 	}
 
 	channelName := params[0]
@@ -92,7 +90,6 @@ func ircListHandler(db *DB, params []string, user *User) {
 	if len(params) != 0 {
 		user.IO.send("Wrong number of parameters\n")
 		return
-		//return errors.New("Wrong number of parameters")
 	}
 	var s string
 	for _, v := range db.channelList {
@@ -109,7 +106,6 @@ func ircPartHandler(db *DB, params []string, user *User) {
 	if len(params) != 1 {
 		user.IO.send("Wrong number of parameters\n")
 		return
-		//return errors.New("Wrong number of parameters")
 	}
 	channelName := params[0]
 	if db.channelList[channelName] != nil {
@@ -131,7 +127,6 @@ func ircNamesHandler(db *DB, params []string, user *User) {
 	if len(params) != 0 {
 		user.IO.send("Wrong number of parameters\n")
 		return
-		//return errors.New("Wrong number of parameters")
 	}
 	var s string
 	for _, v := range db.userList {
@@ -150,7 +145,6 @@ func ircPrivmsgHandler(db *DB, params []string, user *User) {
 	if len(params) < 2 {
 		user.IO.send("Wrong number of parameters\n")
 		return
-		//return errors.New("Wrong number of parameters")
 	}
 	name := params[0]
 	if name == user.nickname {
