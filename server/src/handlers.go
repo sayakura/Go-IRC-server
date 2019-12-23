@@ -176,9 +176,8 @@ func ircPrivmsgHandler(db *DB, params []string, user *User) {
 			}
 		}
 	} else { // privmsg with user
-		fmt.Println(db.userList)
 		u := db.userList[name]
-		if u == nil {
+		if u == nil || (u != nil && u.LoggedIn == false) {
 			user.IO.send("User does not exsit / not online!\n")
 		} else {
 			u.IO.send("\n" + user.nickname + ": " + strings.Trim(msg, "\"") + "\n")
