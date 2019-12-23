@@ -1,6 +1,29 @@
 [![Run on Repl.it](https://repl.it/badge/github/sayakura/Go-IRC-server)](https://repl.it/github/sayakura/Go-IRC-server)
 
-## Concepts
+#### From Author
+
+This project has a lot of work to do when you are trying to cover most of the edge cases(the irc server logic). 
+I had tried to implement some fancy features and they are like 98% done but I had no time to fill in the last 
+piece of the puzzle. They are:
+- data persistence, user can choose data persistence mode and what happened is that when the server starts, 
+it will read previoust data from the local file system into memory, and I wrote a signal handler to handle 
+signal interrupt, it will store all the existing data into file system(in json format) before the server shuts
+down. but somehow the golang lib is not able to convert my struct into json representation string. 
+- some rfc rules, which are described in the following research section of this readme file, I implemented the 
+easy and obvious one, but it added a lot of complexities. 
+
+
+**Explanation"
+└── src
+    ├── db.go       ;; database api, provides a way to manipulate the db without changing it directly
+    ├── handlers.go 
+                    ;; handlers for different irc commands, I have two tables, one for commands when the user is not logged in(mainly the auth ones) , another one contains the normal ones that the user can use
+    ├── main.go     ;; entry point, some setup (like db initialization and flag parsing)
+    ├── server.go   ;; a big for loop for new connections and go routines to handle each new connection(like a little section)
+    └── utils.go    ;; utilities
+
+
+## Reserch that I had done:
 
 ### Client
 
