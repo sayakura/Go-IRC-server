@@ -34,29 +34,14 @@ func (c *Client) close() {
 	c.conn.Close()
 }
 
-func (c *Client) getAddr() string {
-	return c.conn.RemoteAddr().String()
-}
-
 // var	userList map[string]User
 
-func promptLoop(client *Client) {
-	// buf := make([]byte, 1024)
-
-	// _, err := conn.Read(buf)
-	// if err != nil {
-	// 	log.Println("Error when reading incomming request: ", err.Error())
-	// }
-}
-
-func authenticateUser(client *Client, addr string, db *DB) error {
-	var usr User
-	usr.addrInfo = addr
+func promptLoop(user *User, db *DB) error {
 	buf := make([]byte, 1024)
-	var handlerErr error
 
 	for {
-		_, err := client.recv(buf)
+		//user.IO.send(user.nickname + " > ")
+		_, err := user.IO.recv(buf)
 		if err == io.EOF {
 			return io.EOF
 		}
@@ -65,6 +50,42 @@ func authenticateUser(client *Client, addr string, db *DB) error {
 		}
 		for _, msg := range strings.Split(string(buf), DELIMETER) {
 			if msg != "" && msg[0] != EOF {
+				msg = strings.Trim(msg, " ")
+				if *debug {
+					fmt.Printf("Got something: [%s][%d]\n", msg, len(msg))
+				}
+				tokens := strings.Split(msg, " ")
+				command := strings.ToUpper(tokens[0])
+				params := tokens[1:]
+				handler, found := commandList[command]
+				if found {
+					handler(db, params, user)
+				} else {
+					user.IO.send("Unknown command\n")
+				}
+			}
+		}
+		for i := 0; i < 1024; i++ {
+			buf[i] = 0
+		}
+	}
+}
+
+func authenticateUser(user *User, db *DB) error {
+	buf := make([]byte, 1024)
+	var handlerErr error
+
+	for {
+		_, err := user.IO.recv(buf)
+		if err == io.EOF {
+			return io.EOF
+		}
+		if err != nil {
+			log.Println("Error when reading message from user: ", err.Error())
+		}
+		for _, msg := range strings.Split(string(buf), DELIMETER) {
+			if msg != "" && msg[0] != EOF {
+				msg = strings.Trim(msg, " ")
 				handlerErr = nil
 				if *debug {
 					fmt.Printf("Got something: [%s][%d]\n", msg, len(msg))
@@ -74,22 +95,24 @@ func authenticateUser(client *Client, addr string, db *DB) error {
 				params := tokens[1:]
 				handler, found := authCommandList[command]
 				if found {
-					handlerErr = handler(client, params, &usr)
+					handlerErr = handler(params, user)
 				} else {
-					client.send("Unknown command\n")
+					user.IO.send("Unknown command\n")
 				}
-				if command == "REGISTER" && handlerErr != nil {
-					client.send("Successfully signed up!\n")
-					db.addUser(usr)
+				if command == "REGISTER" && handlerErr == nil {
+					user.LoggedIn = true
+					user.IO.send("Successfully signed up and logged in!\n")
+					db.addUser(*user)
 					return nil
 				}
-				if usr.password != "" && usr.nickname != "" && usr.username != "" && handlerErr == nil {
-					if db.userIsMatched(usr) {
-						client.send("Successfully logged in!\n")
-						usr.LoggedIn = true
-						db.addUser(usr)
+				if user.password != "" && user.nickname != "" && user.username != "" && handlerErr == nil {
+					fmt.Println(user)
+					if db.userIsMatched(user) {
+						user.IO.send("Successfully logged in!\n")
+						user.LoggedIn = true
+						db.addUser(*user)
 					} else {
-						client.send("Nickname / username / password doesn't match with the record\n")
+						user.IO.send("Nickname / username / password doesn't match with the record\n")
 					}
 					return nil
 				}
@@ -101,19 +124,21 @@ func authenticateUser(client *Client, addr string, db *DB) error {
 	}
 }
 
-func handleNewConnection(client *Client, db *DB) {
-	addr := client.getAddr()
-	client.send("You are currently not logged in\n")
-	for !db.isLoggedIn(addr) {
-		err := authenticateUser(client, addr, db)
+func handleNewConnection(user *User, db *DB) {
+	user.IO.send("You are currently not logged in\n")
+	for !db.isLoggedIn(user.addrInfo) {
+		err := authenticateUser(user, db)
 		if err != nil {
 			fmt.Println("Client disconnected")
-			client.close()
+			user.IO.close()
 			return
 		}
 	}
-	promptLoop(client)
-	client.close()
+	promptLoop(user, db)
+	u := db.userList[user.addrInfo]
+	u.LoggedIn = false
+	db.userList[user.addrInfo] = u
+	user.IO.close()
 }
 
 func runServer(cfg Config, db *DB) {
@@ -129,24 +154,34 @@ func runServer(cfg Config, db *DB) {
 
 	fmt.Printf("Starting server...\n")
 	fmt.Printf("Listening on Port %s\n", cfg.Port)
-
 	for {
 		newConn, err := conn.Accept()
-		var client Client = Client{conn: newConn}
+		var user User = User{
+			IO:       &Client{conn: newConn},
+			addrInfo: newConn.RemoteAddr().String(),
+		}
 
 		if err != nil {
 			log.Println("Error with accepting new connection: ", err.Error())
+		} else {
+			if *debug {
+				fmt.Println("New connection!: ", user.addrInfo)
+			}
 		}
 		newConn.Write([]byte("You are connected to IRC server!\n"))
-		go handleNewConnection(&client, db)
+		go handleNewConnection(&user, db)
 	}
 }
 
-// var commandList = map[string]func(net.Conn, []string) {
-// 	"PASS" : ircPassHandler,
-// }
+var commandList = map[string]func(*DB, []string, *User){
+	"JOIN":    ircJoinHandler,
+	"PART":    ircPartHandler,
+	"NAMES":   ircNamesHandler,
+	"LIST":    ircListHandler,
+	"PRIVMSG": ircPrivmsgHandler,
+}
 
-var authCommandList = map[string]func(*Client, []string, *User) error{
+var authCommandList = map[string]func([]string, *User) error{
 	"REGISTER": ircRegisterHandler,
 	"PASS":     ircPassHandler,
 	"NICK":     ircNickHandler,

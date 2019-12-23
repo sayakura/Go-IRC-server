@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -9,20 +10,23 @@ import (
 )
 
 type Channel struct {
+	ChannelName string
+	Users       []*User
 }
 
 type User struct {
+	IO       *Client
 	addrInfo string
 	LoggedIn bool
 	username string
 	nickname string
 	password string
-	channels []Channel
+	channels []*Channel
 }
 
 type DB struct {
 	userList    map[string]User
-	channelList []Channel
+	channelList map[string]Channel
 }
 
 func initDB(cfg Config) *DB {
@@ -37,6 +41,12 @@ func initDB(cfg Config) *DB {
 			log.Fatalln("Encountered error when parsing data file", err.Error())
 		}
 	}
+	if db.userList == nil {
+		db.userList = make(map[string]User)
+	}
+	if db.channelList == nil {
+		db.channelList = make(map[string]Channel)
+	}
 	return db
 }
 
@@ -45,13 +55,16 @@ func (d *DB) isLoggedIn(addr string) bool {
 }
 
 func (d *DB) addUser(usr User) {
+	usr.password = hashAndSalt([]byte(usr.password))
 	d.userList[usr.addrInfo] = usr
 }
 
-func (d *DB) userIsMatched(curUser User) bool {
-	for _, user := range d.userList {
-		if (curUser.username == user.username || curUser.nickname == user.nickname) &&
-			curUser.password == user.password {
+func (d *DB) userIsMatched(curUser *User) bool {
+	for _, u := range d.userList {
+		//fmt.Println(u)
+		if u.nickname == curUser.nickname &&
+			u.password == curUser.password &&
+			u.username == curUser.username {
 			return true
 		}
 	}
@@ -59,7 +72,9 @@ func (d *DB) userIsMatched(curUser User) bool {
 }
 
 func (d *DB) savedToFileSystem() {
-	file, _ := json.MarshalIndent(d, "", " ")
+	fmt.Println(d)
+	file, _ := json.Marshal(d)
+	fmt.Println(string(file))
 	err := ioutil.WriteFile("./data/db", file, 0644)
 	if err != nil {
 		log.Fatalln("Failed to save db data info file system", err.Error())

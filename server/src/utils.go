@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+
+	"golang.org/x/crypto/bcrypt"
 	//"fmt"
 )
 
@@ -23,4 +25,15 @@ func readConfigFile(path string) Config {
 		log.Fatalln("Encountered error when parsing config file ", err.Error())
 	}
 	return ret
+}
+
+func hashAndSalt(pwd []byte) string {
+	//bytes, _ := bcrypt.GenerateFromPassword([]byte(pwd), 14)
+	//return string(bytes)
+	return string(pwd)
+}
+
+func checkPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
