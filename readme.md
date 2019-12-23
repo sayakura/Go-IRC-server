@@ -13,7 +13,7 @@ down. but somehow the golang lib is not able to convert my struct into json repr
 easy and obvious one, but it added a lot of complexities. 
 
 
-**Explanation"
+**Explanation**
 └── src
     ├── db.go       ;; database api, provides a way to manipulate the db without changing it directly
     ├── handlers.go 
