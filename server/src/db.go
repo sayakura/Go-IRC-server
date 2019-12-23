@@ -44,6 +44,10 @@ func (d *DB) isLoggedIn(addr string) bool {
 	return d.userList[addr].LoggedIn
 }
 
+func (d *DB) addUser(usr User) {
+	d.userList[usr.addrInfo] = usr
+}
+
 func (d *DB) userIsMatched(curUser User) bool {
 	for _, user := range d.userList {
 		if (curUser.username == user.username || curUser.nickname == user.nickname) &&

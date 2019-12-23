@@ -6,6 +6,12 @@
 
 Each client is distinguished from other clients by **a unique
 nickname having a maximum length of nine (9) character**
+
+The nickname supplied with NICK is the name that's used to address you on IRC. The nickname must be unique across the network, so you can't use a nickname that's already in use at the time.
+
+The username supplied with USER is simply the user part in your user@host hostmask that appears to others on IRC, showing where your connection originates from (if you've never seen these, then your client may be hiding them). In the early days of IRC it was typical for people to run their IRC client on multi-user machines, and the username corresponded to their local username on that machine. Some people do still use IRC from multi-user shell servers, but for the most part the username is vestigal.
+
+The real name supplied with USER is used to populate the real name field that appears when someone uses the WHOIS command on your nick. Unlike the other two fields, this field can be fairly long and contain most characters (including spaces). Some people do put their real name here, but many do not.
   
 ### Channel
 

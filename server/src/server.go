@@ -51,7 +51,9 @@ func promptLoop(client *Client) {
 
 func authenticateUser(client *Client, addr string, db *DB) error {
 	var usr User
+	usr.addrInfo = addr
 	buf := make([]byte, 1024)
+	var handlerErr error
 
 	for {
 		_, err := client.recv(buf)
@@ -63,6 +65,7 @@ func authenticateUser(client *Client, addr string, db *DB) error {
 		}
 		for _, msg := range strings.Split(string(buf), DELIMETER) {
 			if msg != "" && msg[0] != EOF {
+				handlerErr = nil
 				if *debug {
 					fmt.Printf("Got something: [%s][%d]\n", msg, len(msg))
 				}
@@ -71,14 +74,25 @@ func authenticateUser(client *Client, addr string, db *DB) error {
 				params := tokens[1:]
 				handler, found := authCommandList[command]
 				if found {
-					handler(client, params, &usr)
+					handlerErr = handler(client, params, &usr)
 				} else {
 					client.send("Unknown command\n")
 				}
-			}
-			if db.userIsMatched(usr) {
-				client.send("Logged In!")
-				return nil
+				if command == "REGISTER" && handlerErr != nil {
+					client.send("Successfully signed up!\n")
+					db.addUser(usr)
+					return nil
+				}
+				if usr.password != "" && usr.nickname != "" && usr.username != "" && handlerErr == nil {
+					if db.userIsMatched(usr) {
+						client.send("Successfully logged in!\n")
+						usr.LoggedIn = true
+						db.addUser(usr)
+					} else {
+						client.send("Nickname / username / password doesn't match with the record\n")
+					}
+					return nil
+				}
 			}
 		}
 		for i := 0; i < 1024; i++ {
@@ -132,8 +146,9 @@ func runServer(cfg Config, db *DB) {
 // 	"PASS" : ircPassHandler,
 // }
 
-var authCommandList = map[string]func(*Client, []string, *User){
-	"PASS": ircPassHandler,
-	"NICK": ircPassHandler,
-	"USER": ircPassHandler,
+var authCommandList = map[string]func(*Client, []string, *User) error{
+	"REGISTER": ircRegisterHandler,
+	"PASS":     ircPassHandler,
+	"NICK":     ircNickHandler,
+	"USER":     ircUserHandler,
 }
