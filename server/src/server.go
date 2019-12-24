@@ -173,6 +173,9 @@ var commandList = map[string]func(*DB, []string, *User){
 	"NAMES":   ircNamesHandler,
 	"LIST":    ircListHandler,
 	"PRIVMSG": ircPrivmsgHandler,
+	"PASS":     ircPassHandler2,
+	"NICK":     ircNickHandler2,
+	"USER":     ircUserHandler2,
 }
 
 var authCommandList = map[string]func([]string, *User) error{

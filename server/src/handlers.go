@@ -177,6 +177,7 @@ func ircPrivmsgHandler(db *DB, params []string, user *User) {
 		}
 	} else { // privmsg with user
 		u := db.userList[name]
+		fmt.Println(u)
 		if u == nil || (u != nil && u.LoggedIn == false) {
 			user.IO.send("User does not exsit / not online!\n")
 		} else {
@@ -184,4 +185,40 @@ func ircPrivmsgHandler(db *DB, params []string, user *User) {
 			return
 		}
 	}
+}
+
+func ircPassHandler2(db *DB, params []string, user *User) {
+	if len(params) != 1 {
+		user.IO.send("Invalid number of parameters\n")
+		return
+	}
+	password := params[0]
+	user.password = password
+	user.IO.send("Password changed!\n")
+}
+
+func ircUserHandler2(db *DB, params []string, user *User) {
+	if len(params) != 1 {
+		user.IO.send("Invalid number of parameters\n")
+		return
+	}
+	username := params[0]
+	user.username = username
+	user.IO.send("Username changed!\n")
+}
+
+func ircNickHandler2(db *DB, params []string, user *User) {
+	if len(params) != 1 {
+		user.IO.send("Invalid number of parameters\n")
+		return
+	}
+	nickname := params[0]
+	if len(nickname) > 9 {
+		user.IO.send("nickname has a maximum length of nine (9) character\n")
+		return
+	}
+	db.userList[nickname] = user
+	delete(db.userList, user.nickname)
+	user.nickname = nickname
+	user.IO.send("Nickname changed!\n")
 }
